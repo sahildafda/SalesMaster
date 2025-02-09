@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     View,
     Text,
@@ -10,60 +10,153 @@ import {
     Alert,
     Modal,
     TextInput,
+    ActivityIndicator,
+    Button
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { RadioButton } from "react-native-paper"
-
-// Dummy customer data
-const initialCustomers = [
-    { id: "1", name: "John Doe", mobile: "123-456-7890", gender: "Male" },
-    { id: "2", name: "Jane Smith", mobile: "987-654-3210", gender: "Female" },
-    { id: "3", name: "Sam Wilson", mobile: "555-555-5555", gender: "Other" },
-];
+import { collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { db } from "../firebaseConfig.js"; // Import Firebase
 
 // Customers Screen
 const CustomersScreen = () => {
-    const [customers, setCustomers] = useState(initialCustomers);
+    const [customers, setCustomers] = useState([]);
     const [modalVisible, setModalVisible] = useState(false);
-    const [customerName, setCustomerName] = useState("");
-    const [customerMobile, setCustomerMobile] = useState("");
-    const [customerGender, setCustomerGender] = useState("Male");
+    const [name, setName] = useState("");
+    const [contact, setContact] = useState("");
+    const [gender, setGender] = useState("male");
+    const [isUpdate, setIsUpdate] = useState(false);
+    const [selectedCustomer, setSelectedCustomer] = useState(null);
+
+    // fetch customer list
+    useEffect(() => {
+        // Reference to Firestore collection
+        const customersRef = collection(db, "customers");
+
+        // Real-time listener for Firestore
+        const unsubscribe = onSnapshot(customersRef, (querySnapshot) => {
+            const customersList = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
+
+            setCustomers(customersList); // Update state with customer data
+        });
+
+        // Cleanup function to stop listening when component unmounts
+        return () => unsubscribe();
+    }, []);
 
     const handleAddCustomer = () => {
 
-        // reset the form data
-        setModalVisible(false); // Close modal
-        setCustomerName(""); // Clear inputs
-        setCustomerMobile("");
-        setCustomerGender("Male");
-
+        setName("");
+        setContact("");
+        setGender("male");
         setModalVisible(true);
     };
 
-    const handleSaveCustomer = () => {
-        if (!customerName || !customerMobile) {
+    const handleEdit = (customer) => {
+
+        setSelectedCustomer(customer);
+        setIsUpdate(true);
+        setName(customer.name);
+        setContact(customer.contact);
+        setGender(customer.gender);
+        setModalVisible(true);
+    };
+
+    const handleUpdateCustomer = async () => {
+        if (!selectedCustomer) return;
+
+        try {
+            const customerRef = doc(db, "customers", selectedCustomer.id);
+            await updateDoc(customerRef, {
+                name,
+                contact,
+                gender,
+            });
+
+            Alert.alert("Success", "Customer updated!");
+            setModalVisible(false);
+        } catch (error) {
+            Alert.alert("Error", "Failed to update customer");
+            console.error("Update Error:", error);
+        }
+    };
+
+    const handleDelete = (id) => {
+        Alert.alert(
+            "Confirm Delete",
+            "Are you sure you want to delete this customer?",
+            [
+                { text: "Cancel", style: "cancel" },
+                { text: "Delete", onPress: () => deleteCustomer(id), style: "destructive" }
+            ]
+        );
+    };
+
+    const deleteCustomer = async (id) => {
+        try {
+            await deleteDoc(doc(db, "customers", id));
+
+            if (Platform.OS === "android") {
+                ToastAndroid.show("Customer deleted successfully!", ToastAndroid.SHORT);
+            } else {
+                Alert.alert("Success", "Customer deleted successfully!");
+            }
+        } catch (error) {
+            Alert.alert("Error", "Failed to delete customer");
+            console.error("Delete Error:", error);
+        }
+    };
+
+    const handleSaveCustomer = async () => {
+        if (!name || !contact) {
             alert("Please enter all details");
             return;
         }
 
         const newCustomer = {
-            id: Math.random().toString(), // Unique ID
-            name: customerName,
-            mobile: customerMobile,
-            gender: customerGender,
+            name: name,
+            contact: contact,
+            gender: gender,
         };
 
-        setCustomers([...customers, newCustomer]); // Add new customer
-        setModalVisible(false); // Close modal
-        setCustomerName(""); // Clear inputs
-        setCustomerMobile("");
-        setCustomerGender("Male");
+        try {
 
-        if (Platform.OS === "android") {
-            ToastAndroid.show("Customer added successfully!", ToastAndroid.SHORT);
-        } else {
-            Alert.alert("Success", "Customer added successfully!");
+            if (!isUpdate) {
+                // Add a new document in collection "customers"
+                const docRef = await addDoc(collection(db, "customers"), newCustomer);
+
+                if (Platform.OS === "android") {
+                    ToastAndroid.show("Customer added successfully!", ToastAndroid.SHORT);
+                } else {
+                    Alert.alert("Success", "Customer added successfully!");
+                }
+            }
+            else {
+
+                const customerRef = doc(db, "customers", selectedCustomer.id);
+                await updateDoc(customerRef, {
+                    name,
+                    contact,
+                    gender,
+                });
+
+                Alert.alert("Success", "Customer updated!");
+                setModalVisible(false);
+            }
+
+            setName(""); // Reset input fields
+            setContact("");
+            setGender("male");
+            setModalVisible(false);
+
+        } catch (error) {
+            console.error("Error adding document: ", error);
+            Alert.alert("Error", "Failed to add customer");
         }
+
     };
 
     return (
@@ -73,6 +166,7 @@ const CustomersScreen = () => {
                 <Text style={styles.addButtonText}>+ Add Customer</Text>
             </TouchableOpacity>
 
+
             {/* Customer List */}
             <FlatList
                 data={customers}
@@ -80,15 +174,15 @@ const CustomersScreen = () => {
                 renderItem={({ item }) => (
                     <View style={styles.customerItem}>
                         <View>
-                            <Text style={styles.customerName}>{item.name}</Text>
-                            <Text style={styles.customerMobile}>{item.mobile}</Text>
+                            <Text style={styles.name}>{item.name}</Text>
+                            <Text style={styles.contact}>{item.contact}</Text>
                             <Text style={styles.customerGender}>{item.gender}</Text>
                         </View>
                         <View style={styles.buttons}>
-                            <TouchableOpacity>
+                            <TouchableOpacity onPress={() => handleEdit(item)}>
                                 <Ionicons name="pencil" size={24} color="blue" />
                             </TouchableOpacity>
-                            <TouchableOpacity>
+                            <TouchableOpacity onPress={() => handleDelete(item.id)}>
                                 <Ionicons name="trash" size={24} color="red" />
                             </TouchableOpacity>
                         </View>
@@ -96,18 +190,19 @@ const CustomersScreen = () => {
                 )}
             />
 
+
             {/* Modal for Adding Customer */}
             <Modal visible={modalVisible} transparent animationType="slide">
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Add Customer</Text>
+                        <Text style={styles.modalTitle}>Customer Details</Text>
 
                         {/* Name Input */}
                         <TextInput
                             style={styles.input}
                             placeholder="Customer Name"
-                            value={customerName}
-                            onChangeText={setCustomerName}
+                            value={name}
+                            onChangeText={setName}
                         />
 
                         {/* Mobile Number Input */}
@@ -115,11 +210,23 @@ const CustomersScreen = () => {
                             style={styles.input}
                             placeholder="Mobile Number"
                             keyboardType="phone-pad"
-                            value={customerMobile}
-                            onChangeText={setCustomerMobile}
+                            value={contact}
+                            onChangeText={setContact}
                         />
 
-                        
+                        {/* Customer Gender Radio button */}
+                        <View style={styles.radioGroup}>
+                            <RadioButton.Group onValueChange={setGender} value={gender}>
+                                <View style={styles.radioItem}>
+                                    <RadioButton value="male" />
+                                    <Text>Male</Text>
+                                </View>
+                                <View style={styles.radioItem}>
+                                    <RadioButton value="female" />
+                                    <Text>Female</Text>
+                                </View>
+                            </RadioButton.Group>
+                        </View>
 
                         {/* Buttons */}
                         <View style={styles.modalButtons}>
@@ -133,7 +240,8 @@ const CustomersScreen = () => {
                     </View>
                 </View>
             </Modal>
-        </View>
+
+        </View >
     );
 };
 
@@ -168,11 +276,11 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 3,
     },
-    customerName: {
+    name: {
         fontSize: 18,
         fontWeight: "bold",
     },
-    customerMobile: {
+    contact: {
         fontSize: 14,
         color: "gray",
     },
@@ -248,6 +356,12 @@ const styles = StyleSheet.create({
     saveButtonText: {
         color: "white",
         fontSize: 16,
+    },
+    radioGroup: {
+        flexDirection: "row", alignItems: "center", marginVertical: 10
+    },
+    radioItem: {
+        flexDirection: "row", alignItems: "center", marginRight: 20
     },
 });
 

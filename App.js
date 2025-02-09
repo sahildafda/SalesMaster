@@ -3,9 +3,14 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { RadioButton } from "react-native-paper";
+import { db } from "./firebaseConfig"; // Import Firebase
+import { collection, getDocs } from "firebase/firestore";
 
 // Screens
 import CustomersScreen from "./components/CustomerScreen"
+
+// check for database connection
 
 const ProductsScreen = () => (
   <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
