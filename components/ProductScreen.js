@@ -6,163 +6,138 @@ import {
     TouchableOpacity,
     StyleSheet,
     ToastAndroid,
-    Platform,
     Alert,
     Modal,
     TextInput,
-    ActivityIndicator,
-    Button
+    Platform
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { RadioButton } from "react-native-paper"
 import { collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../firebaseConfig.js"; // Import Firebase
 
-// Customers Screen
-const CustomersScreen = () => {
-    const [customers, setCustomers] = useState([]);
+const ProductListScreen = () => {
+    const [products, setProducts] = useState([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [name, setName] = useState("");
-    const [contact, setContact] = useState("");
-    const [gender, setGender] = useState("male");
+    const [price, setPrice] = useState("");
     const [isUpdate, setIsUpdate] = useState(false);
-    const [selectedCustomer, setSelectedCustomer] = useState(null);
+    const [selectedProduct, setSelectedProduct] = useState(null);
 
-    // fetch customer list
+    // Fetch product list
     useEffect(() => {
-        // Reference to Firestore collection
-        const customersRef = collection(db, "customers");
+        const productsRef = collection(db, "products");
 
-        // Real-time listener for Firestore
-        const unsubscribe = onSnapshot(customersRef, (querySnapshot) => {
-            const customersList = querySnapshot.docs.map(doc => ({
+        const unsubscribe = onSnapshot(productsRef, (querySnapshot) => {
+            const productsList = querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data(),
             }));
-
-            setCustomers(customersList); // Update state with customer data
+            setProducts(productsList);
         });
 
-        // Cleanup function to stop listening when component unmounts
         return () => unsubscribe();
     }, []);
 
-    // show modal to add customer deails
-    const handleAddCustomer = () => {
-
+    // Show modal to add product
+    const handleAddProduct = () => {
         setName("");
-        setContact("");
-        setGender("male");
+        setPrice("");
+        setIsUpdate(false);
         setModalVisible(true);
     };
 
-    // show modal to edit customer deails
-    const handleEdit = (customer) => {
-
-        setSelectedCustomer(customer);
+    // Show modal to edit product
+    const handleEdit = (product) => {
+        setSelectedProduct(product);
         setIsUpdate(true);
-        setName(customer.name);
-        setContact(customer.contact);
-        setGender(customer.gender);
+        setName(product.name);
+        setPrice(product.price.toString());
         setModalVisible(true);
     };
 
-    // delete customer deails
+    // Delete product with confirmation
     const handleDelete = (id) => {
         Alert.alert(
             "Confirm Delete",
-            "Are you sure you want to delete this customer?",
+            "Are you sure you want to delete this product?",
             [
                 { text: "Cancel", style: "cancel" },
-                { text: "Delete", onPress: () => deleteCustomer(id), style: "destructive" }
+                { text: "Delete", onPress: () => deleteProduct(id), style: "destructive" }
             ]
         );
     };
 
-    // delete customer details from the server
-    const deleteCustomer = async (id) => {
+    // Delete product from Firestore
+    const deleteProduct = async (id) => {
         try {
-            await deleteDoc(doc(db, "customers", id));
+            await deleteDoc(doc(db, "products", id));
 
             if (Platform.OS === "android") {
-                ToastAndroid.show("Customer deleted successfully!", ToastAndroid.SHORT);
+                ToastAndroid.show("Product deleted successfully!", ToastAndroid.SHORT);
             } else {
-                Alert.alert("Success", "Customer deleted successfully!");
+                Alert.alert("Success", "Product deleted successfully!");
             }
         } catch (error) {
-            Alert.alert("Error", "Failed to delete customer");
+            Alert.alert("Error", "Failed to delete product");
             console.error("Delete Error:", error);
         }
     };
 
-    // Save customer details to server
-    const handleSaveCustomer = async () => {
-        if (!name || !contact) {
+    // Save new or updated product
+    const handleSaveProduct = async () => {
+        if (!name || !price) {
             alert("Please enter all details");
             return;
         }
 
-        const newCustomer = {
+        const newProduct = {
             name: name,
-            contact: contact,
-            gender: gender,
+            price: parseFloat(price),
         };
 
         try {
-
             if (!isUpdate) {
-                // Add a new document in collection "customers"
-                const docRef = await addDoc(collection(db, "customers"), newCustomer);
-
-                if (Platform.OS === "android") {
-                    ToastAndroid.show("Customer added successfully!", ToastAndroid.SHORT);
-                } else {
-                    Alert.alert("Success", "Customer added successfully!");
-                }
-            }
-            else {
-
-                const customerRef = doc(db, "customers", selectedCustomer.id);
-                await updateDoc(customerRef, {
+                // Add new product
+                await addDoc(collection(db, "products"), newProduct);
+                ToastAndroid.show("Product added successfully!", ToastAndroid.SHORT);
+            } else {
+                // Update existing product
+                const productRef = doc(db, "products", selectedProduct.id);
+                await updateDoc(productRef, {
                     name,
-                    contact,
-                    gender,
+                    price: parseFloat(price),
                 });
+                setIsUpdate(false);
 
-                Alert.alert("Success", "Customer updated!");
-                setModalVisible(false);
+                ToastAndroid.show("Product Updated successfully!", ToastAndroid.SHORT);
             }
 
-            setName(""); // Reset input fields
-            setContact("");
-            setGender("male");
+            setName("");
+            setPrice("");
             setModalVisible(false);
 
         } catch (error) {
-            console.error("Error adding document: ", error);
-            Alert.alert("Error", "Failed to add customer");
+            console.error("Error adding/updating product: ", error);
+            Alert.alert("Error", "Failed to save product");
         }
-
     };
 
     return (
         <View style={styles.container}>
-            {/* Add Customer Button */}
-            <TouchableOpacity style={styles.addButton} onPress={handleAddCustomer}>
-                <Text style={styles.addButtonText}>+ Add Customer</Text>
+            {/* Add Product Button */}
+            <TouchableOpacity style={styles.addButton} onPress={handleAddProduct}>
+                <Text style={styles.addButtonText}>+ Add Product</Text>
             </TouchableOpacity>
 
-
-            {/* Customer List */}
+            {/* Product List */}
             <FlatList
-                data={customers}
+                data={products}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
-                    <View style={styles.customerItem}>
+                    <View style={styles.productItem}>
                         <View>
                             <Text style={styles.name}>{item.name}</Text>
-                            <Text style={styles.contact}>{item.contact}</Text>
-                            <Text style={styles.customerGender}>{item.gender.toUpperCase()}</Text>
+                            <Text style={styles.price}>Rs. {item.price}</Text>
                         </View>
                         <View style={styles.buttons}>
                             <TouchableOpacity onPress={() => handleEdit(item)}>
@@ -176,30 +151,29 @@ const CustomersScreen = () => {
                 )}
             />
 
-
-            {/* Modal for Adding or Updating Customer */}
+            {/* Modal for Adding or Editing Product */}
             <Modal visible={modalVisible} transparent animationType="slide">
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Customer Details</Text>
+                        <Text style={styles.modalTitle}>Product Details</Text>
 
                         {/* Name Input */}
                         <TextInput
                             style={styles.input}
-                            placeholder="Customer Name"
+                            placeholder="Product Name"
                             placeholderTextColor="gray"
                             value={name}
                             onChangeText={setName}
                         />
 
-                        {/* Mobile Number Input */}
+                        {/* Price Input */}
                         <TextInput
                             style={styles.input}
-                            placeholder="Mobile Number"
+                            placeholder="Price"
                             placeholderTextColor="gray"
-                            keyboardType="phone-pad"
-                            value={contact}
-                            onChangeText={setContact}
+                            keyboardType="numeric"
+                            value={price}
+                            onChangeText={setPrice}
                         />
 
                         {/* Buttons */}
@@ -207,18 +181,18 @@ const CustomersScreen = () => {
                             <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
                                 <Text style={styles.cancelButtonText}>Cancel</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.saveButton} onPress={handleSaveCustomer}>
+                            <TouchableOpacity style={styles.saveButton} onPress={handleSaveProduct}>
                                 <Text style={styles.saveButtonText}>Save</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
                 </View>
             </Modal>
-
-        </View >
+        </View>
     );
 };
 
+// 🔹 **Styles (Same as CustomersScreen, with minor tweaks)**
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -237,7 +211,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "bold",
     },
-    customerItem: {
+    productItem: {
         flexDirection: "row",
         justifyContent: "space-between",
         padding: 15,
@@ -254,22 +228,15 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: "bold",
     },
-    contact: {
-        fontSize: 14,
-        color: "gray",
-    },
-    customerGender: {
-        fontSize: 14,
-        color: "gray",
-        fontStyle: "italic",
+    price: {
+        fontSize: 16,
+        color: "green",
     },
     buttons: {
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
     },
-
-    /* Modal Styles */
     modalContainer: {
         flex: 1,
         justifyContent: "center",
@@ -296,11 +263,6 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         marginBottom: 10,
     },
-    picker: {
-        width: "100%",
-        height: 50,
-        marginBottom: 10,
-    },
     modalButtons: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -315,10 +277,6 @@ const styles = StyleSheet.create({
         marginRight: 5,
         alignItems: "center",
     },
-    cancelButtonText: {
-        color: "white",
-        fontSize: 16,
-    },
     saveButton: {
         backgroundColor: "green",
         padding: 10,
@@ -327,16 +285,6 @@ const styles = StyleSheet.create({
         marginLeft: 5,
         alignItems: "center",
     },
-    saveButtonText: {
-        color: "white",
-        fontSize: 16,
-    },
-    radioGroup: {
-        flexDirection: "row", alignItems: "center", marginVertical: 10
-    },
-    radioItem: {
-        flexDirection: "row", alignItems: "center", marginRight: 20
-    },
 });
 
-export default CustomersScreen;
+export default ProductListScreen;

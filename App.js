@@ -3,24 +3,16 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { RadioButton } from "react-native-paper";
-import { db } from "./firebaseConfig"; // Import Firebase
-import { collection, getDocs } from "firebase/firestore";
 
 // Screens
-import CustomersScreen from "./components/CustomerScreen"
+import CustomersScreen from "./components/CustomerScreen";
+import ProductScreen from "./components/ProductScreen";
+import OrderScreen from "./components/OrderScreen";
 
-// check for database connection
 
-const ProductsScreen = () => (
+const ReportsScreen = () => (
   <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-    <Text>Products Screen</Text>
-  </View>
-);
-
-const OrdersScreen = () => (
-  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-    <Text>Orders Screen</Text>
+    <Text>Reports Screen</Text>
   </View>
 );
 
@@ -40,6 +32,8 @@ export default function App() {
               iconName = "cart-outline";
             } else if (route.name === "Orders") {
               iconName = "document-text-outline";
+            } else if (route.name === "Reports") {
+              iconName = "bar-chart-outline"; // Icon for Reports
             }
             return <Ionicons name={iconName} size={size} color={color} />;
           },
@@ -47,9 +41,10 @@ export default function App() {
           tabBarInactiveTintColor: "gray",
         })}
       >
+        <Tab.Screen name="Orders" component={OrderScreen} />
         <Tab.Screen name="Customers" component={CustomersScreen} />
-        <Tab.Screen name="Products" component={ProductsScreen} />
-        <Tab.Screen name="Orders" component={OrdersScreen} />
+        <Tab.Screen name="Products" component={ProductScreen} />
+        <Tab.Screen name="Reports" component={ReportsScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );

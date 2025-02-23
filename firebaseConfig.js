@@ -15,18 +15,4 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-const checkFirestoreConnection = async () => {
-    try {
-        const querySnapshot = await getDocs(collection(db, "test")); // Change "test" to an existing Firestore collection
-        console.log("Firestore is connected! ✅");
-        querySnapshot.forEach((doc) => {
-            console.log(doc.id, "=>", doc.data());
-        });
-    } catch (error) {
-        console.error("Firestore connection failed ❌", error);
-    }
-};
-
-checkFirestoreConnection();
-
 export const db = getFirestore(app);
