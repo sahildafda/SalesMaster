@@ -15,8 +15,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { RadioButton } from "react-native-paper"
-import { collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc } from "firebase/firestore";
+
+// firebase 
 import { db } from "../firebaseConfig.js"; // Import Firebase
+import { collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore";
 
 // Customers Screen
 const CustomersScreen = () => {
