@@ -11,7 +11,6 @@ import { DatePickerModal } from "react-native-paper-dates";
 import * as OpenAnything from "react-native-openanything";
 import SendIntentAndroid from "react-native-send-intent";
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
-import Toast from 'react-native-simple-toast'; // For showing success messages
 
 const CustomersScreen = () => {
     const [orders, setOrders] = useState([]);
@@ -236,27 +235,6 @@ const CustomersScreen = () => {
                     data={orders}
                     keyExtractor={(item) => item.id}
                     renderItem={({ item }) => {
-                        const handleSendWhatsApp = (item) => {
-                            const phoneNumber = item.CustomerMobile || ""; // Customer's mobile number
-
-                            // Generate bill message
-                            let message = `🧾 *Order Invoice* 🧾\n`;
-                            message += `👤 Customer: ${item.CustomerName}\n📞 Mobile: ${item.CustomerMobile || "N/A"}\n\n`;
-                            message += `📦 *Products Ordered:*\n`;
-
-                            Alert.alert(item.ProductList);
-                            item.ProductList.forEach((product, index) => {
-                                message += `${index + 1}. ${product.name} - ${product.quantity} x ₹${product.price} = ₹${product.quantity * product.price}\n`;
-                            });
-
-                            message += `\n💰 *Total Amount:* ₹${item.TotalOrderPrice}\n`;
-                            message += `🗓️ Date: ${new Date(item.Date).toDateString()}`;
-
-                            // Open WhatsApp and send message automatically
-                            SendIntentAndroid.sendSms(phoneNumber, message)
-                                .then(() => console.log("Message sent!"))
-                                .catch((err) => console.error("Failed to send message:", err));
-                        };
 
                         return (
                             <View style={styles.orderItem}>
@@ -266,9 +244,7 @@ const CustomersScreen = () => {
                                     <Text style={styles.date}>{new Date(item.Date).toDateString()}</Text>
                                 </View>
                                 <View style={styles.buttons}>
-                                    <TouchableOpacity onPress={() => generateInvoice(item)}>
-                                        <Ionicons name="download-outline" size={24} color="green" />
-                                    </TouchableOpacity>
+
                                     {/* Edit Icon */}
                                     <TouchableOpacity onPress={() => handleEditOrder(item)}>
                                         <Ionicons name="pencil" size={24} color="blue" />

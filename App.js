@@ -11,13 +11,8 @@ import CustomersScreen from "./components/CustomerScreen";
 import ProductScreen from "./components/ProductScreen";
 import OrderScreen from "./components/OrderScreen";
 import LoginScreen from "./components/LoginScreen";
+import ReportScreen from "./components/ReportScreen";
 import { AuthProvider, AuthContext } from "./context/AuthContext";
-
-const ReportsScreen = () => (
-  <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-    <Text>Reports Screen</Text>
-  </View>
-);
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -69,7 +64,7 @@ const MainTabs = () => (
     <Tab.Screen name="Orders" component={OrderScreen} />
     {/* <Tab.Screen name="Customers" component={CustomersScreen} /> */}
     {/* <Tab.Screen name="Products" component={ProductScreen} /> */}
-    <Tab.Screen name="Reports" component={ReportsScreen} />
+    <Tab.Screen name="Reports" component={ReportScreen} />
     <Tab.Screen name="Logout" component={LogoutScreen} options={{ tabBarStyle: { display: "none" } }} />
 
   </Tab.Navigator>
